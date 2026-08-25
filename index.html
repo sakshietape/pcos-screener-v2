@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PCOS Awareness Screener</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-a:        #fdf2f8;
+      --bg-b:        #eef2ff;
+      --surface:     #ffffff;
+      --bot-bg:      #f1f5f9;
+      --bot-text:    #1e2a3a;
+      --user-bg:     linear-gradient(135deg, #a78bfa, #818cf8);
+      --user-text:   #ffffff;
+      --accent:      #8b5cf6;
+      --accent-2:    #ec4899;
+      --accent-dark: #6d28d9;
+      --btn-yes:     linear-gradient(135deg, #34d399, #10b981);
+      --btn-no:      linear-gradient(135deg, #f472b6, #ec4899);
+      --btn-text:    #ffffff;
+      --footer-bg:   #faf7ff;
+      --footer-text: #6b6480;
+      --border:      #e5e0f5;
+      --radius:      20px;
+      --font-head:   'Poppins', system-ui, sans-serif;
+      --font-body:   'Inter', 'Noto Sans Devanagari', system-ui, sans-serif;
+    }
+
+    html, body { height: 100%; }
+    body {
+      font-family: var(--font-body);
+      background: linear-gradient(160deg, var(--bg-a) 0%, var(--bg-b) 100%);
+      background-attachment: fixed;
+      color: var(--bot-text);
+      display: flex;
+      justify-content: center;
+      min-height: 100dvh;
+    }
+
+    #app-shell {
+      width: 100%;
+      max-width: 640px;
+      display: flex;
+      flex-direction: column;
+      min-height: 100dvh;
+      background: var(--surface);
+      box-shadow: 0 0 60px rgba(139, 92, 246, .08);
+      position: relative;
+    }
+    @media (min-width: 700px) {
+      body { padding: 28px 0; }
+      #app-shell {
+        min-height: calc(100dvh - 56px);
+        border-radius: 28px;
+        overflow: hidden;
+        box-shadow: 0 20px 60px rgba(109, 40, 217, .16), 0 2px 10px rgba(0,0,0,.04);
+      }
+    }
+
+    header {
+      background: linear-gradient(120deg, #8b5cf6, #a78bfa 55%, #ec4899);
+      color: #fff;
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    header .avatar {
+      width: 46px; height: 46px; min-width: 46px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 2.5px solid rgba(255,255,255,.85);
+      box-shadow: 0 4px 14px rgba(0,0,0,.2);
+      background: #fff;
+    }
+    header .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    header .titles { flex: 1; min-width: 0; }
+    header h1 { font-family: var(--font-head); font-size: 1.02rem; font-weight: 600; line-height: 1.2; }
+    header p  { font-size: .74rem; opacity: .92; margin-top: 2px; }
+
+    #lang-toggle {
+      display: flex;
+      background: rgba(255,255,255,.18);
+      border-radius: 20px;
+      padding: 3px;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+    #lang-toggle button {
+      border: none;
+      background: transparent;
+      color: #fff;
+      font-family: var(--font-body);
+      font-size: .72rem;
+      font-weight: 600;
+      padding: 6px 10px;
+      border-radius: 16px;
+      cursor: pointer;
+      opacity: .8;
+    }
+    #lang-toggle button.active { background: #fff; color: var(--accent-dark); opacity: 1; }
+
+    #chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 22px 16px 160px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      width: 100%;
+    }
+
+    .bubble-row { display: flex; align-items: flex-end; gap: 9px; animation: fadeUp .32s cubic-bezier(.22,1,.36,1) both; }
+    .bubble-row.bot  { justify-content: flex-start; }
+    .bubble-row.user { justify-content: flex-end; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+    .bot-icon {
+      width: 32px; height: 32px; min-width: 32px;
+      border-radius: 50%; overflow: hidden; border: 2px solid #fff;
+      align-self: flex-end; box-shadow: 0 2px 8px rgba(139,92,246,.28); flex-shrink: 0;
+    }
+    .bot-icon img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    .bubble {
+      max-width: min(78vw, 440px);
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      font-size: .95rem;
+      line-height: 1.55;
+      word-break: break-word;
+      box-shadow: 0 1px 2px rgba(30,41,59,.04);
+    }
+    .bubble-row.bot  .bubble { background: var(--bot-bg); color: var(--bot-text); border-bottom-left-radius: 6px; }
+    .bubble-row.user .bubble { background: var(--user-bg); color: var(--user-text); border-bottom-right-radius: 6px; box-shadow: 0 4px 14px rgba(139,92,246,.25); }
+
+    .bubble.info { background: linear-gradient(160deg, #fff7ed, #fef3f9); border: 1.5px solid #fed7aa; }
+    .bubble.result { background: linear-gradient(160deg, #f5f3ff, #fdf2f8); border: 1.5px solid #ddd6fe; }
+
+    .why-toggle {
+      display: block; margin-top: 12px; font-size: .8rem; font-weight: 600; color: var(--accent-dark);
+      cursor: pointer; background: #fff; border: 1px solid #ddd6fe; border-radius: 20px; padding: 6px 14px;
+      font-family: inherit; text-align: left; width: fit-content;
+    }
+    .why-toggle:hover { background: #f5f3ff; }
+    .why-text { margin-top: 8px; font-size: .82rem; color: #4c3a75; background: #ffffffaa; border-radius: 12px; padding: 10px 12px; border: 1px dashed #ddd6fe; }
+
+    .typing { display: flex; gap: 5px; padding: 14px 16px; }
+    .typing span { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); opacity: .55; animation: bounce .9s infinite; }
+    .typing span:nth-child(2) { animation-delay: .15s; }
+    .typing span:nth-child(3) { animation-delay: .30s; }
+    @keyframes bounce { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
+
+    #tray {
+      position: sticky; bottom: 0;
+      background: rgba(255,255,255,.92);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid var(--border);
+      padding: 12px 16px;
+      display: flex; flex-direction: column; gap: 9px;
+      z-index: 9;
+      margin-top: auto;
+    }
+    #tray.hidden { display: none; }
+
+    .yn-row { display: flex; gap: 10px; }
+    .yn-btn {
+      flex: 1; padding: 13px; border: none; border-radius: 14px;
+      font-size: 1rem; font-weight: 600; font-family: var(--font-body);
+      cursor: pointer; transition: filter .15s, transform .1s;
+    }
+    .yn-btn:active { transform: scale(.96); }
+    .yn-btn.yes { background: var(--btn-yes); color: var(--btn-text); box-shadow: 0 4px 12px rgba(16,185,129,.28); }
+    .yn-btn.no  { background: var(--btn-no);  color: var(--btn-text); box-shadow: 0 4px 12px rgba(236,72,153,.24); }
+    .yn-btn:hover { filter: brightness(1.06); }
+
+    .row-flex { display: flex; gap: 8px; align-items: center; }
+    .row-flex input[type="number"], .row-flex input[type="text"] {
+      flex: 1; padding: 12px 15px; border: 2px solid var(--border); border-radius: 14px;
+      font-size: 1rem; font-family: var(--font-body); color: var(--bot-text); background: var(--surface);
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .row-flex input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(139,92,246,.12); outline: none; }
+
+    .submit-btn {
+      padding: 12px 22px; background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      color: #fff; border: none; border-radius: 14px; font-size: 1rem; font-weight: 600;
+      font-family: var(--font-body); cursor: pointer; box-shadow: 0 4px 14px rgba(139,92,246,.32);
+    }
+    .submit-btn:hover { filter: brightness(1.08); }
+    .submit-btn:active { transform: scale(.96); }
+
+    .hint { font-size: .78rem; color: #8b83a3; text-align: center; }
+    .inline-error { color: #c62828 !important; }
+
+    footer {
+      background: var(--footer-bg); border-top: 1px solid var(--border);
+      padding: 10px 16px; font-size: .66rem; color: var(--footer-text);
+      text-align: center; line-height: 1.5;
+    }
+
+    .error-bubble { background: #fff7ed; border: 1.5px solid #fdba74; color: #7c3a00; }
+
+    .restart-btn {
+      margin-top: 12px; padding: 11px 24px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff; border: none; border-radius: 14px; font-size: .9rem; font-weight: 600;
+      font-family: var(--font-body); cursor: pointer; box-shadow: 0 4px 14px rgba(139,92,246,.3);
+    }
+
+    /* ── Ask floating button + panel ── */
+    #ask-fab {
+      position: fixed;
+      bottom: 100px;
+      right: calc(50% - 300px);
+      width: 54px; height: 54px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent-2), var(--accent-dark));
+      color: #fff; border: none; font-size: 1.4rem; cursor: pointer;
+      box-shadow: 0 6px 20px rgba(139,92,246,.4);
+      z-index: 20;
+    }
+    @media (max-width: 700px) { #ask-fab { right: 18px; bottom: 92px; } }
+    #ask-fab.hidden { display: none; }
+
+    #ask-panel {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--surface);
+      border-radius: 22px 22px 0 0;
+      box-shadow: 0 -10px 40px rgba(0,0,0,.18);
+      z-index: 30;
+      max-width: 640px; margin: 0 auto;
+      padding: 16px; display: flex; flex-direction: column; gap: 10px;
+      transform: translateY(110%);
+      transition: transform .28s cubic-bezier(.22,1,.36,1);
+      max-height: 70vh;
+    }
+    #ask-panel.open { transform: translateY(0); }
+    #ask-panel .ask-header { display:flex; justify-content: space-between; align-items:center; }
+    #ask-panel .ask-header h3 { font-family: var(--font-head); font-size: 1rem; color: var(--accent-dark); }
+    #ask-panel .ask-close { background:none; border:none; font-size:1.3rem; cursor:pointer; color: var(--footer-text); }
+    #ask-thread { overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:10px; min-height: 80px; }
+    #ask-thread .bubble { max-width: 85%; font-size: .88rem; }
+    #ask-input-row { display:flex; gap:8px; }
+    #ask-input-row input { flex:1; padding:11px 14px; border:2px solid var(--border); border-radius:14px; font-family:var(--font-body); font-size:.9rem; }
+    #ask-input-row button { background: var(--accent-dark); color:#fff; border:none; border-radius:14px; padding: 0 18px; font-weight:600; cursor:pointer; }
+    #ask-overlay { position: fixed; inset: 0; background: rgba(30,20,50,.35); z-index: 25; display:none; }
+    #ask-overlay.open { display:block; }
+  </style>
+</head>
+<body>
+
+<div id="app-shell">
+  <header>
+    <div class="avatar" aria-hidden="true"><img src="doctor_avatar.jpg" alt="Friendly doctor avatar" /></div>
+    <div class="titles">
+      <h1>PCOS Awareness Screener</h1>
+      <p>A student-built educational tool — not a medical device</p>
+    </div>
+    <div id="lang-toggle">
+      <button id="lang-en" class="active" onclick="setLangUI('en')">EN</button>
+      <button id="lang-mr" onclick="setLangUI('mr')">मराठी</button>
+    </div>
+  </header>
+
+  <main id="chat" role="log" aria-live="polite" aria-label="Chat conversation"></main>
+  <div id="tray" class="hidden" role="form" aria-label="Answer input"></div>
+
+  <footer>
+    <strong>For parents &amp; guardians:</strong> This is a student-built educational project, not a medical device. It uses self-reported symptoms to raise awareness about PCOS and to encourage teenagers to talk to a trusted adult and a doctor if something feels off. It is not a diagnostic tool.
+  </footer>
+</div>
+
+<!-- Floating Ask button + slide-up panel -->
+<button id="ask-fab" class="hidden" onclick="toggleAsk(true)" aria-label="Ask a question">❓</button>
+<div id="ask-overlay" onclick="toggleAsk(false)"></div>
+<div id="ask-panel">
+  <div class="ask-header">
+    <h3 id="ask-title">Ask me anything about PCOS</h3>
+    <button class="ask-close" onclick="toggleAsk(false)">✕</button>
+  </div>
+  <div id="ask-thread"></div>
+  <div id="ask-input-row">
+    <input type="text" id="ask-input" placeholder="Type your question..." />
+    <button id="ask-send" onclick="sendAsk()">Send</button>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   Configuration
+   ═══════════════════════════════════════════════════════════════ */
+const API_BASE = "http://127.0.0.1:8000"; // ← change to your deployed backend URL
+
+let currentLang = "en"; // "en" | "mr"
+let userName = "Friend";
+let currentStep = -1;
+let answers = {};
+
+const chat = document.getElementById("chat");
+const tray = document.getElementById("tray");
+const askFab = document.getElementById("ask-fab");
+
+/* ═══════════════════════════════════════════════════════════════
+   UI strings (both languages)
+   ═══════════════════════════════════════════════════════════════ */
+const UI = {
+  en: {
+    letsGo: "Let's go 💙",
+    familiarQ: "Before we start — do you already know what PCOS is?",
+    yes: "✅  Yes", no: "🚫  No",
+    nameQ: "What should I call you? (first name is totally fine)",
+    namePlaceholder: "Type your name...",
+    readyMsg: "I'll ask you a few quick questions about some things you might be experiencing. There are no right or wrong answers — just tap or type what feels true for you. Ready?",
+    thinking: "Thanks for answering! Just a moment while I look at your responses… 🔍",
+    closing: "Whatever your result, the most important thing is that you're paying attention to your body — that's really great. 🌷<br/><br/>If anything is worrying you, please reach out to a parent, guardian, school nurse, or doctor.",
+    restart: "Start over 🔄",
+    why: "💬 Why am I seeing this?",
+    askTitle: "Ask me anything about PCOS",
+    askPlaceholder: "Type your question...",
+    connError: "⚠️ Couldn't connect to the server right now. Please make sure the backend is running and refresh the page.",
+    sendError: "⚠️ Something went wrong while sending your responses. Please check your connection and try again.",
+    tryAgain: "Try again 🔄",
+  },
+  mr: {
+    letsGo: "चला सुरू करूया 💙",
+    familiarQ: "सुरुवात करण्यापूर्वी — तुम्हाला PCOS म्हणजे काय हे आधीच माहित आहे का?",
+    yes: "✅  हो", no: "🚫  नाही",
+    nameQ: "मी तुम्हाला काय म्हणून हाक मारू? (फक्त पहिले नाव पुरेसे आहे)",
+    namePlaceholder: "तुमचे नाव टाका...",
+    readyMsg: "मी तुम्हाला काही सोपे प्रश्न विचारेन. कोणतेही उत्तर बरोबर किंवा चूक नाही — फक्त जे खरे वाटते ते सांगा. तयार आहात का?",
+    thinking: "उत्तरांसाठी धन्यवाद! तुमची उत्तरे तपासत आहे… 🔍",
+    closing: "तुमचा निकाल काहीही असो, सर्वात महत्त्वाची गोष्ट म्हणजे तुम्ही तुमच्या शरीराकडे लक्ष देत आहात — हे खूप छान आहे. 🌷<br/><br/>काही काळजी वाटत असल्यास, कृपया पालक, शाळेतील परिचारिका किंवा डॉक्टरांशी संपर्क साधा.",
+    restart: "पुन्हा सुरू करा 🔄",
+    why: "💬 मला हे का दिसत आहे?",
+    askTitle: "PCOS बद्दल काहीही विचारा",
+    askPlaceholder: "तुमचा प्रश्न टाका...",
+    connError: "⚠️ सध्या सर्व्हरशी कनेक्ट होऊ शकलो नाही. कृपया बॅकएंड सुरू आहे याची खात्री करा आणि पान रीफ्रेश करा.",
+    sendError: "⚠️ तुमची उत्तरे पाठवताना काहीतरी चुकले. कृपया कनेक्शन तपासा आणि पुन्हा प्रयत्न करा.",
+    tryAgain: "पुन्हा प्रयत्न करा 🔄",
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   Question flow (bilingual)
+   ═══════════════════════════════════════════════════════════════ */
+const STEPS = [
+  {
+    key: "age", type: "number", min: 10, max: 25, step: 1,
+    question: { en: "How old are you? (years)", mr: "तुमचे वय किती आहे? (वर्षे)" },
+    hint: { en: "Enter a number, e.g. 15", mr: "उदा. १५" },
+    validate: v => v >= 10 && v <= 25 ? null : "Please enter an age between 10 and 25.",
+    display: v => `${v}`
+  },
+  {
+    key: "years_since_menarche", type: "number", min: 0, max: 15, step: 1,
+    question: { en: "How many years has it been since your first period? (If not yet, enter 0)", mr: "तुमची पहिली मासिक पाळी येऊन किती वर्षे झाली? (अजून सुरू नसेल तर ० टाका)" },
+    hint: { en: "Enter a number, e.g. 2", mr: "उदा. २" },
+    validate: v => v >= 0 && v <= 15 ? null : "Please enter a number between 0 and 15.",
+    display: v => `${v}`
+  },
+  {
+    key: "bmi", type: "number", min: 10, max: 60, step: 0.1,
+    intro: {
+      en: "Quick note: <strong>BMI (Body Mass Index)</strong> = weight (kg) ÷ height (m)². You can calculate it at bmi.cdc.gov, or ask a nurse/doctor. It's just one data point — no need to stress over it.",
+      mr: "टीप: <strong>BMI (बॉडी मास इंडेक्स)</strong> = वजन (किलो) ÷ उंची (मीटर)². तुम्ही bmi.cdc.gov वर याची गणना करू शकता, किंवा परिचारिका/डॉक्टरांना विचारा. हा फक्त एक निर्देशक आहे — याबद्दल जास्त काळजी करू नका."
+    },
+    question: { en: "What is your BMI?", mr: "तुमचा BMI किती आहे?" },
+    hint: { en: "Enter a number, e.g. 22.5", mr: "उदा. २२.५" },
+    validate: v => v >= 10 && v <= 60 ? null : "Please enter a BMI between 10 and 60.",
+    display: v => `BMI ${parseFloat(v).toFixed(1)}`
+  },
+  {
+    key: "acne", type: "bool",
+    question: { en: "Do you experience acne that feels harder to manage than usual?", mr: "तुम्हाला नेहमीपेक्षा जास्त मुरुमांचा त्रास होतो का?" },
+  },
+  {
+    key: "irregular_periods", type: "bool",
+    question: { en: "Have your periods been irregular — skipping months or very unpredictable?", mr: "तुमची मासिक पाळी अनियमित आहे का — महिने चुकणे किंवा खूप अनिश्चित असणे?" },
+  },
+  {
+    key: "facial_hair_growth", type: "bool",
+    question: { en: "Have you noticed more facial hair growth (chin, upper lip, cheeks) than before?", mr: "तुम्हाला चेहऱ्यावर (हनुवटी, ओठांवर, गालांवर) आधीपेक्षा जास्त केस वाढलेले दिसले आहेत का?" },
+  },
+  {
+    key: "weight_gain", type: "bool",
+    question: { en: "Noticed unexpected weight gain that's hard to explain?", mr: "अनपेक्षित वजन वाढ जाणवली आहे जी समजावणे कठीण आहे का?" },
+  },
+  {
+    key: "bloating", type: "bool",
+    question: { en: "Do you often feel bloated or have abdominal discomfort?", mr: "तुम्हाला अनेकदा पोट फुगल्यासारखे किंवा अस्वस्थ वाटते का?" },
+  },
+  {
+    key: "hair_thinning", type: "bool",
+    question: { en: "Noticed hair thinning or more hair falling out than usual?", mr: "तुमचे केस पातळ होत आहेत किंवा नेहमीपेक्षा जास्त गळत आहेत असे वाटते का?" },
+  },
+  {
+    key: "fatigue", type: "bool",
+    question: { en: "Do you often feel very tired, even with enough sleep?", mr: "पुरेशी झोप घेऊनही तुम्हाला अनेकदा खूप थकवा जाणवतो का?" },
+  },
+  {
+    key: "family_history", type: "bool",
+    question: { en: "Does anyone in your close family (mother, sister, aunt) have PCOS or a similar hormonal condition?", mr: "तुमच्या जवळच्या कुटुंबात (आई, बहीण, मावशी/आत्या) कोणाला PCOS किंवा तत्सम हार्मोनल स्थिती आहे का?" },
+  },
+  {
+    key: "blood_glucose_flag", type: "bool",
+    intro: {
+      en: "One more: <strong>blood glucose</strong> is just the amount of sugar in your blood. Higher levels can sometimes relate to insulin resistance, which is linked to PCOS. You don't need to know an exact number for this one.",
+      mr: "आणखी एक: <strong>ब्लड ग्लुकोज</strong> म्हणजे रक्तातील साखरेचे प्रमाण. जास्त प्रमाण कधीकधी इन्सुलिन प्रतिरोधकतेशी संबंधित असू शकते, जे PCOS शी जोडलेले आहे. यासाठी नेमकी संख्या माहित असण्याची गरज नाही."
+    },
+    question: { en: "Has a doctor ever told you your blood sugar was high, or that you might be at risk for insulin resistance?", mr: "एखाद्या डॉक्टरांनी तुम्हाला कधी सांगितले आहे का की तुमची रक्तातील साखर जास्त आहे, किंवा तुम्हाला इन्सुलिन प्रतिरोधकतेचा धोका असू शकतो?" },
+  },
+];
+
+/* ═══════════════════════════════════════════════════════════════
+   DOM helpers
+   ═══════════════════════════════════════════════════════════════ */
+function addBubble(text, who = "bot", extraClass = "") {
+  const row = document.createElement("div");
+  row.className = `bubble-row ${who}`;
+  if (who === "bot") {
+    const icon = document.createElement("div");
+    icon.className = "bot-icon";
+    icon.innerHTML = `<img src="doctor_avatar.jpg" alt="Doctor" />`;
+    row.appendChild(icon);
+  }
+  const bubble = document.createElement("div");
+  bubble.className = `bubble${extraClass ? " " + extraClass : ""}`;
+  bubble.innerHTML = text;
+  row.appendChild(bubble);
+  chat.appendChild(row);
+  scrollToBottom();
+  return bubble;
+}
+function addUserBubble(text) { addBubble(escapeHtml(text), "user"); }
+function escapeHtml(str) {
+  return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function scrollToBottom() { chat.scrollTop = chat.scrollHeight; }
+
+function showTyping() {
+  const row = document.createElement("div");
+  row.className = "bubble-row bot";
+  row.id = "typing-indicator";
+  const icon = document.createElement("div");
+  icon.className = "bot-icon";
+  icon.innerHTML = `<img src="doctor_avatar.jpg" alt="Doctor" />`;
+  row.appendChild(icon);
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  bubble.innerHTML = `<div class="typing"><span></span><span></span><span></span></div>`;
+  row.appendChild(bubble);
+  chat.appendChild(row);
+  scrollToBottom();
+}
+function removeTyping() { const el = document.getElementById("typing-indicator"); if (el) el.remove(); }
+function clearTray() { tray.innerHTML = ""; tray.classList.add("hidden"); }
+
+/* ═══════════════════════════════════════════════════════════════
+   Language toggle (only meaningful before conversation starts)
+   ═══════════════════════════════════════════════════════════════ */
+function setLangUI(lang) {
+  currentLang = lang;
+  document.getElementById("lang-en").classList.toggle("active", lang === "en");
+  document.getElementById("lang-mr").classList.toggle("active", lang === "mr");
+  document.getElementById("ask-title").textContent = UI[lang].askTitle;
+  document.getElementById("ask-input").placeholder = UI[lang].askPlaceholder;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Boot sequence: familiarity gate → (optional brief) → name → flow
+   ═══════════════════════════════════════════════════════════════ */
+async function boot() {
+  showTyping();
+  try {
+    const res = await fetch(`${API_BASE}/disclaimer?lang=${currentLang}`);
+    if (!res.ok) throw new Error("net");
+    const data = await res.json();
+    removeTyping();
+    addBubble(`<strong>${currentLang === "en" ? "Before we start —" : "सुरुवात करण्यापूर्वी —"}</strong> ${escapeHtml(data.disclaimer)}`);
+    setTimeout(askFamiliarity, 700);
+  } catch (e) {
+    removeTyping();
+    addBubble(UI[currentLang].connError, "bot", "error-bubble");
+  }
+}
+
+function askFamiliarity() {
+  showTyping();
+  setTimeout(() => {
+    removeTyping();
+    addBubble(escapeHtml(UI[currentLang].familiarQ));
+    tray.innerHTML = ""; tray.classList.remove("hidden");
+    const row = document.createElement("div");
+    row.className = "yn-row";
+    const yes = document.createElement("button");
+    yes.className = "yn-btn yes"; yes.textContent = UI[currentLang].yes;
+    yes.onclick = () => { clearTray(); addUserBubble(UI[currentLang].yes); askName(); };
+    const no = document.createElement("button");
+    no.className = "yn-btn no"; no.textContent = UI[currentLang].no;
+    no.onclick = () => { clearTray(); addUserBubble(UI[currentLang].no); showPcosBrief(); };
+    row.appendChild(yes); row.appendChild(no);
+    tray.appendChild(row);
+  }, 600);
+}
+
+async function showPcosBrief() {
+  showTyping();
+  try {
+    const res = await fetch(`${API_BASE}/pcos-info?lang=${currentLang}`);
+    const data = await res.json();
+    removeTyping();
+    addBubble(escapeHtml(data.info), "bot", "info");
+    setTimeout(askName, 700);
+  } catch (e) {
+    removeTyping();
+    askName(); // don't block the flow if this one call fails
+  }
+}
+
+function askName() {
+  showTyping();
+  setTimeout(() => {
+    removeTyping();
+    addBubble(escapeHtml(UI[currentLang].nameQ));
+    tray.innerHTML = ""; tray.classList.remove("hidden");
+    const row = document.createElement("div");
+    row.className = "row-flex";
+    const input = document.createElement("input");
+    input.type = "text"; input.maxLength = 30;
+    input.placeholder = UI[currentLang].namePlaceholder;
+    input.addEventListener("keydown", e => { if (e.key === "Enter") submitName(input); });
+    const btn = document.createElement("button");
+    btn.className = "submit-btn"; btn.textContent = "→";
+    btn.onclick = () => submitName(input);
+    row.appendChild(input); row.appendChild(btn);
+    tray.appendChild(row);
+    setTimeout(() => input.focus(), 200);
+  }, 500);
+}
+
+function submitName(input) {
+  const val = input.value.trim();
+  userName = val || "Friend";
+  clearTray();
+  addUserBubble(val || (currentLang === "en" ? "(skipped)" : "(वगळले)"));
+  showReadyMessage();
+}
+
+function showReadyMessage() {
+  showTyping();
+  setTimeout(() => {
+    removeTyping();
+    const greetPrefix = userName !== "Friend" ? `${escapeHtml(userName)}! ` : "";
+    addBubble(greetPrefix + escapeHtml(UI[currentLang].readyMsg));
+    tray.innerHTML = ""; tray.classList.remove("hidden");
+    const btn = document.createElement("button");
+    btn.className = "submit-btn"; btn.style.width = "100%"; btn.style.fontSize = "1.05rem";
+    btn.textContent = UI[currentLang].letsGo;
+    btn.onclick = () => { clearTray(); addUserBubble(UI[currentLang].letsGo); askFab.classList.remove("hidden"); advanceStep(); };
+    tray.appendChild(btn);
+    scrollToBottom();
+  }, 700);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Structured question flow
+   ═══════════════════════════════════════════════════════════════ */
+function renderTray(step) {
+  tray.innerHTML = ""; tray.classList.remove("hidden");
+  if (step.type === "bool") {
+    const row = document.createElement("div");
+    row.className = "yn-row";
+    const yes = document.createElement("button");
+    yes.className = "yn-btn yes"; yes.textContent = UI[currentLang].yes;
+    yes.onclick = () => submitBool(step, true);
+    const no = document.createElement("button");
+    no.className = "yn-btn no"; no.textContent = UI[currentLang].no;
+    no.onclick = () => submitBool(step, false);
+    row.appendChild(yes); row.appendChild(no);
+    tray.appendChild(row);
+  } else {
+    const row = document.createElement("div");
+    row.className = "row-flex";
+    const input = document.createElement("input");
+    input.type = "number"; input.min = step.min; input.max = step.max; input.step = step.step;
+    input.placeholder = step.hint[currentLang];
+    input.addEventListener("keydown", e => { if (e.key === "Enter") submitNum(step, input); });
+    const btn = document.createElement("button");
+    btn.className = "submit-btn"; btn.textContent = "→";
+    btn.onclick = () => submitNum(step, input);
+    row.appendChild(input); row.appendChild(btn);
+    tray.appendChild(row);
+    const hint = document.createElement("p");
+    hint.className = "hint"; hint.textContent = step.hint[currentLang];
+    tray.appendChild(hint);
+    setTimeout(() => input.focus(), 200);
+  }
+}
+
+function submitBool(step, value) {
+  clearTray();
+  answers[step.key] = value;
+  addUserBubble(value ? UI[currentLang].yes : UI[currentLang].no);
+  advanceStep();
+}
+
+function submitNum(step, input) {
+  const raw = input.value.trim();
+  if (raw === "") { shakeInput(input); return; }
+  const val = parseFloat(raw);
+  if (isNaN(val)) { shakeInput(input); return; }
+  const err = step.validate(val);
+  if (err) { showInlineError(err, input); return; }
+  clearTray();
+  answers[step.key] = step.key === "bmi" ? val : Math.round(val);
+  addUserBubble(step.display(answers[step.key]));
+  advanceStep();
+}
+
+function shakeInput(input) {
+  input.style.borderColor = "#e57373"; input.focus();
+  setTimeout(() => { input.style.borderColor = ""; }, 1500);
+}
+function showInlineError(msg, input) {
+  let existing = tray.querySelector(".inline-error");
+  if (!existing) { existing = document.createElement("p"); existing.className = "hint inline-error"; tray.appendChild(existing); }
+  existing.textContent = msg; input.style.borderColor = "#e57373"; input.focus();
+  setTimeout(() => { existing.remove(); input.style.borderColor = ""; }, 2500);
+}
+
+function advanceStep() {
+  currentStep++;
+  if (currentStep < STEPS.length) {
+    const step = STEPS[currentStep];
+    showTyping();
+    setTimeout(() => {
+      removeTyping();
+      if (step.intro) addBubble(step.intro[currentLang], "bot", "info");
+      setTimeout(() => {
+        addBubble(escapeHtml(step.question[currentLang]));
+        renderTray(step);
+      }, step.intro ? 500 : 0);
+    }, 600);
+  } else {
+    submitToAPI();
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Final submission
+   ═══════════════════════════════════════════════════════════════ */
+async function submitToAPI() {
+  showTyping();
+  addBubble(escapeHtml(UI[currentLang].thinking));
+  try {
+    const payload = Object.assign({ name: userName, language: currentLang }, answers);
+    const res = await fetch(`${API_BASE}/screen`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error(`Server returned ${res.status}`);
+    const data = await res.json();
+    removeTyping();
+
+    const whyId = "why-" + Date.now();
+    addBubble(
+      `${escapeHtml(data.message)}
+       <button class="why-toggle" id="${whyId}" aria-expanded="false">${UI[currentLang].why}</button>
+       <div class="why-text" id="${whyId}-text" hidden>${escapeHtml(data.why || "")}</div>`,
+      "bot", "result"
+    );
+    const toggleBtn = document.getElementById(whyId);
+    const whyText = document.getElementById(`${whyId}-text`);
+    toggleBtn.addEventListener("click", () => {
+      const expanded = toggleBtn.getAttribute("aria-expanded") === "true";
+      toggleBtn.setAttribute("aria-expanded", String(!expanded));
+      whyText.hidden = expanded;
+    });
+
+    setTimeout(() => {
+      showTyping();
+      setTimeout(() => {
+        removeTyping();
+        addBubble(UI[currentLang].closing);
+        setTimeout(() => {
+          const restartRow = document.createElement("div");
+          restartRow.style.textAlign = "center";
+          const rb = document.createElement("button");
+          rb.className = "restart-btn"; rb.textContent = UI[currentLang].restart;
+          rb.onclick = restartApp;
+          restartRow.appendChild(rb);
+          chat.appendChild(restartRow);
+          scrollToBottom();
+        }, 500);
+      }, 900);
+    }, 900);
+
+  } catch (e) {
+    removeTyping();
+    addBubble(UI[currentLang].sendError, "bot", "error-bubble");
+    const rb = document.createElement("button");
+    rb.className = "restart-btn"; rb.textContent = UI[currentLang].tryAgain;
+    rb.onclick = restartApp;
+    chat.appendChild(rb);
+    scrollToBottom();
+  }
+}
+
+function restartApp() {
+  currentStep = -1; answers = {}; userName = "Friend";
+  chat.innerHTML = ""; clearTray(); askFab.classList.add("hidden");
+  boot();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Ask panel (free-text NLP questions, independent of main flow)
+   ═══════════════════════════════════════════════════════════════ */
+const askPanel = document.getElementById("ask-panel");
+const askOverlay = document.getElementById("ask-overlay");
+const askThread = document.getElementById("ask-thread");
+
+function toggleAsk(open) {
+  askPanel.classList.toggle("open", open);
+  askOverlay.classList.toggle("open", open);
+  if (open) document.getElementById("ask-input").focus();
+}
+
+function addAskBubble(text, who) {
+  const row = document.createElement("div");
+  row.className = `bubble-row ${who}`;
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  bubble.innerHTML = text;
+  row.appendChild(bubble);
+  askThread.appendChild(row);
+  askThread.scrollTop = askThread.scrollHeight;
+}
+
+async function sendAsk() {
+  const input = document.getElementById("ask-input");
+  const text = input.value.trim();
+  if (!text) return;
+  addAskBubble(escapeHtml(text), "user");
+  input.value = "";
+  addAskBubble(`<div class="typing"><span></span><span></span><span></span></div>`, "bot");
+  try {
+    const res = await fetch(`${API_BASE}/ask`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, language: currentLang })
+    });
+    askThread.lastChild.remove();
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      addAskBubble(escapeHtml(err.detail || "Something went wrong."), "bot");
+      return;
+    }
+    const data = await res.json();
+    addAskBubble(escapeHtml(data.answer), "bot");
+  } catch (e) {
+    askThread.lastChild.remove();
+    addAskBubble("⚠️ Couldn't reach the server. Please try again.", "bot");
+  }
+}
+document.getElementById("ask-input").addEventListener("keydown", e => { if (e.key === "Enter") sendAsk(); });
+
+/* ═══════════════════════════════════════════════════════════════
+   Initial language choice, then boot
+   ═══════════════════════════════════════════════════════════════ */
+function chooseLangAndStart() {
+  addBubble("Hi! / नमस्कार! 👋 Please choose your language / कृपया तुमची भाषा निवडा:");
+  tray.innerHTML = ""; tray.classList.remove("hidden");
+  const row = document.createElement("div");
+  row.className = "yn-row";
+  const enBtn = document.createElement("button");
+  enBtn.className = "yn-btn yes"; enBtn.textContent = "English";
+  enBtn.onclick = () => { setLangUI("en"); clearTray(); addUserBubble("English"); boot(); };
+  const mrBtn = document.createElement("button");
+  mrBtn.className = "yn-btn no"; mrBtn.textContent = "मराठी";
+  mrBtn.onclick = () => { setLangUI("mr"); clearTray(); addUserBubble("मराठी"); boot(); };
+  row.appendChild(enBtn); row.appendChild(mrBtn);
+  tray.appendChild(row);
+}
+
+chooseLangAndStart();
+</script>
+</body>
+</html>
