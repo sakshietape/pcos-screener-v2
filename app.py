@@ -270,60 +270,6 @@ def screen(data: ScreeningInput):
 
 
 # ─────────────────────────────────────────────────────────────────
-# /ask — free-text NLP question answering (Gemini)
-# ─────────────────────────────────────────────────────────────────
-
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-_gemini_model = None
-if GEMINI_API_KEY:
-    import google.generativeai as genai
-    genai.configure(api_key=GEMINI_API_KEY)
-    _gemini_model = genai.GenerativeModel("gemini-2.5-flash")
-
-SYSTEM_CONTEXT = {
-    "en": (
-        "You are a gentle, non-diagnostic PCOS awareness assistant for "
-        "teenagers. Answer only questions related to PCOS, periods, hormones, "
-        "and general body-health literacy, in simple, warm, age-appropriate "
-        "English. Never diagnose, never give a percentage or probability, "
-        "never say 'you have PCOS'. If asked something unrelated to health, "
-        "gently redirect back to the topic. If the question suggests something "
-        "urgent or concerning, encourage talking to a parent/guardian and a "
-        "doctor. Keep answers under 120 words."
-    ),
-    "mr": (
-        "तुम्ही किशोरवयीन मुलींसाठी एक सौम्य, निदान न करणारे PCOS जागरूकता सहाय्यक आहात. "
-        "फक्त PCOS, मासिक पाळी, हार्मोन्स आणि सर्वसाधारण शरीर-आरोग्य साक्षरतेशी संबंधित "
-        "प्रश्नांची उत्तरे साध्या, प्रेमळ मराठी भाषेत द्या. कधीही निदान करू नका, टक्केवारी "
-        "किंवा संभाव्यता सांगू नका, 'तुम्हाला PCOS आहे' असे कधीही म्हणू नका. आरोग्याशी संबंधित "
-        "नसलेला प्रश्न विचारल्यास, विषयाकडे परत वळवा. प्रश्न गंभीर वाटल्यास पालक/पालक आणि "
-        "डॉक्टरांशी बोलण्यास प्रोत्साहित करा. उत्तर १२० शब्दांपेक्षा कमी ठेवा."
-    ),
-}
-
-
-class Question(BaseModel):
-    text: str
-    language: str = "en"
-
-
-@app.post("/ask")
-def ask(q: Question):
-    if not _gemini_model:
-        raise HTTPException(
-            status_code=503,
-            detail="Ask feature isn't configured yet — GEMINI_API_KEY is missing on the server."
-        )
-    lang = q.language if q.language in SYSTEM_CONTEXT else "en"
-    prompt = f"{SYSTEM_CONTEXT[lang]}\n\nUser question: {q.text.strip()}"
-    try:
-        response = _gemini_model.generate_content(prompt)
-        return {"answer": response.text}
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Ask feature failed: {e}")
-
-
-# ─────────────────────────────────────────────────────────────────
 # /admin — password-protected view of stored responses
 # ─────────────────────────────────────────────────────────────────
 
