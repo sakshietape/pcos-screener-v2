@@ -32,19 +32,30 @@ app.add_middleware(
 )
 
 # ─────────────────────────────────────────────────────────────────
-# Database (SQLite)
+# Database — Postgres (permanent) when DATABASE_URL is set,
+# otherwise falls back to a local SQLite file for quick local testing.
 #
-# NOTE FOR DEPLOYMENT: Render's free tier disk is NOT guaranteed to
-# persist across restarts/redeploys. This is fine for a demo/college
-# project. For guaranteed long-term persistence, swap this file-based
-# DB for a free hosted Postgres (e.g. Supabase) later — the queries
-# below would only need minor changes. See README.
+# Render's free-tier disk does NOT persist SQLite across restarts —
+# that's why responses were disappearing. Set DATABASE_URL to a free
+# Supabase Postgres connection string (see README) to store responses
+# permanently. Everything below auto-detects which one to use.
 # ─────────────────────────────────────────────────────────────────
+
+DATABASE_URL = os.environ.get("DATABASE_URL")
+USE_POSTGRES = bool(DATABASE_URL)
+
+if USE_POSTGRES:
+    import psycopg2
+    import psycopg2.extras
+
 
 @contextmanager
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    if USE_POSTGRES:
+        conn = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
+    else:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
     try:
         yield conn
         conn.commit()
@@ -54,9 +65,11 @@ def get_db():
 
 def init_db():
     with get_db() as conn:
-        conn.execute("""
+        cur = conn.cursor() if USE_POSTGRES else conn
+        id_col = "id SERIAL PRIMARY KEY" if USE_POSTGRES else "id INTEGER PRIMARY KEY AUTOINCREMENT"
+        cur.execute(f"""
             CREATE TABLE IF NOT EXISTS responses (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                {id_col},
                 timestamp TEXT NOT NULL,
                 name TEXT,
                 language TEXT,
@@ -244,23 +257,30 @@ def screen(data: ScreeningInput):
         message = f"{data.name.strip()}, " + message[0].lower() + message[1:]
 
     # ── Store in DB (never expose raw probability to the client) ──
+    ph = "%s" if USE_POSTGRES else "?"
+    insert_sql = f"""
+        INSERT INTO responses (
+            timestamp, name, language, age, years_since_menarche, bmi,
+            acne, irregular_periods, facial_hair_growth, weight_gain,
+            bloating, hair_thinning, fatigue, family_history,
+            blood_glucose_flag, probability, band
+        ) VALUES ({",".join([ph] * 17)})
+    """
+    insert_values = (
+        datetime.now(timezone.utc).isoformat(),
+        data.name.strip() if data.name else "",
+        lang, data.age, data.years_since_menarche, data.bmi,
+        int(data.acne), int(data.irregular_periods), int(data.facial_hair_growth),
+        int(data.weight_gain), int(data.bloating), int(data.hair_thinning),
+        int(data.fatigue), int(data.family_history), int(data.blood_glucose_flag),
+        round(prob, 4), band,
+    )
     with get_db() as conn:
-        conn.execute("""
-            INSERT INTO responses (
-                timestamp, name, language, age, years_since_menarche, bmi,
-                acne, irregular_periods, facial_hair_growth, weight_gain,
-                bloating, hair_thinning, fatigue, family_history,
-                blood_glucose_flag, probability, band
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-        """, (
-            datetime.now(timezone.utc).isoformat(),
-            data.name.strip() if data.name else "",
-            lang, data.age, data.years_since_menarche, data.bmi,
-            int(data.acne), int(data.irregular_periods), int(data.facial_hair_growth),
-            int(data.weight_gain), int(data.bloating), int(data.hair_thinning),
-            int(data.fatigue), int(data.family_history), int(data.blood_glucose_flag),
-            round(prob, 4), band,
-        ))
+        if USE_POSTGRES:
+            cur = conn.cursor()
+            cur.execute(insert_sql, insert_values)
+        else:
+            conn.execute(insert_sql, insert_values)
 
     return {
         "band": band,
@@ -289,7 +309,12 @@ def check_admin(credentials: HTTPBasicCredentials = Depends(security)):
 @app.get("/admin", response_class=HTMLResponse)
 def admin_view(_: bool = Depends(check_admin)):
     with get_db() as conn:
-        rows = conn.execute("SELECT * FROM responses ORDER BY id DESC").fetchall()
+        if USE_POSTGRES:
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM responses ORDER BY id DESC")
+            rows = cur.fetchall()
+        else:
+            rows = conn.execute("SELECT * FROM responses ORDER BY id DESC").fetchall()
 
     table_rows = ""
     for r in rows:
