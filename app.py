@@ -85,6 +85,7 @@ def init_db():
                 fatigue INTEGER,
                 family_history INTEGER,
                 blood_glucose_flag INTEGER,
+                consent_given INTEGER,
                 probability REAL,
                 band TEXT
             )
@@ -190,6 +191,7 @@ class ScreeningInput(BaseModel):
     fatigue: bool
     family_history: bool = False
     blood_glucose_flag: bool = False
+    consent: bool = True
 
 
 def explain(data: ScreeningInput, irregular_counts: bool) -> str:
@@ -263,8 +265,8 @@ def screen(data: ScreeningInput):
             timestamp, name, language, age, years_since_menarche, bmi,
             acne, irregular_periods, facial_hair_growth, weight_gain,
             bloating, hair_thinning, fatigue, family_history,
-            blood_glucose_flag, probability, band
-        ) VALUES ({",".join([ph] * 17)})
+            blood_glucose_flag, consent_given, probability, band
+        ) VALUES ({",".join([ph] * 18)})
     """
     insert_values = (
         datetime.now(timezone.utc).isoformat(),
@@ -273,7 +275,7 @@ def screen(data: ScreeningInput):
         int(data.acne), int(data.irregular_periods), int(data.facial_hair_growth),
         int(data.weight_gain), int(data.bloating), int(data.hair_thinning),
         int(data.fatigue), int(data.family_history), int(data.blood_glucose_flag),
-        round(prob, 4), band,
+        int(data.consent), round(prob, 4), band,
     )
     with get_db() as conn:
         if USE_POSTGRES:
@@ -336,6 +338,7 @@ def admin_view(_: bool = Depends(check_admin)):
             <td>{'Y' if r['fatigue'] else '-'}</td>
             <td>{'Y' if r['family_history'] else '-'}</td>
             <td>{'Y' if r['blood_glucose_flag'] else '-'}</td>
+            <td>{'✓' if r['consent_given'] else '✗'}</td>
             <td>{r['probability']}</td>
             <td><strong>{r['band']}</strong></td>
         </tr>"""
@@ -362,7 +365,7 @@ def admin_view(_: bool = Depends(check_admin)):
                 <th>ID</th><th>Timestamp (UTC)</th><th>Name</th><th>Lang</th><th>Age</th>
                 <th>Yrs since menarche</th><th>BMI</th><th>Acne</th><th>Irregular periods</th>
                 <th>Facial hair</th><th>Weight gain</th><th>Bloating</th><th>Hair thinning</th>
-                <th>Fatigue</th><th>Family history</th><th>Blood glucose flag</th>
+                <th>Fatigue</th><th>Family history</th><th>Blood glucose flag</th><th>Consent</th>
                 <th>Probability</th><th>Band</th>
             </tr>
             {table_rows}

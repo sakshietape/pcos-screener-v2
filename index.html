@@ -246,7 +246,7 @@
 /* ═══════════════════════════════════════════════════════════════
    Configuration
    ═══════════════════════════════════════════════════════════════ */
-const API_BASE = "https://pcos-screener-v2.onrender.com"; // ← change to your deployed backend URL
+const API_BASE = "http://127.0.0.1:8000"; // ← change to your deployed backend URL
 
 let currentLang = "en"; // "en" | "mr"
 let userName = "Friend";
@@ -262,6 +262,11 @@ const tray = document.getElementById("tray");
 const UI = {
   en: {
     letsGo: "Let's go 💙",
+    consentQ: "Before we continue — is it okay if we store your answers for this screening?",
+    privacyNote: "🔒 Your data stays private and secure. It is never shared with any third party, advertiser, or outside company.",
+    agree: "✅  Yes, I agree",
+    decline: "🚫  No, I don't agree",
+    declineMsg: "That's completely okay — without your permission we can't continue with the screening. You're always welcome to come back anytime you change your mind. 💙",
     familiarQ: "Before we start — do you already know what PCOS is?",
     yes: "✅  Yes", no: "🚫  No",
     nameQ: "What should I call you? (first name is totally fine)",
@@ -277,6 +282,11 @@ const UI = {
   },
   mr: {
     letsGo: "चला सुरू करूया 💙",
+    consentQ: "सुरू करण्यापूर्वी — या तपासणीसाठी आम्ही तुमची उत्तरे साठवली तर चालेल का?",
+    privacyNote: "🔒 तुमचा डेटा पूर्णपणे गोपनीय आणि सुरक्षित राहतो. तो कोणत्याही तिसऱ्या पक्षाला, जाहिरातदाराला किंवा बाहेरील कंपनीला कधीही दिला जात नाही.",
+    agree: "✅  हो, मी सहमत आहे",
+    decline: "🚫  नाही, मी सहमत नाही",
+    declineMsg: "अगदी ठीक आहे — तुमच्या परवानगीशिवाय आम्ही तपासणी पुढे नेऊ शकत नाही. तुमचा विचार बदलल्यास तुम्ही केव्हाही परत येऊ शकता. 💙",
     familiarQ: "सुरुवात करण्यापूर्वी — तुम्हाला PCOS म्हणजे काय हे आधीच माहित आहे का?",
     yes: "✅  हो", no: "🚫  नाही",
     nameQ: "मी तुम्हाला काय म्हणून हाक मारू? (फक्त पहिले नाव पुरेसे आहे)",
@@ -427,11 +437,45 @@ async function boot() {
     const data = await res.json();
     removeTyping();
     addBubble(`<strong>${currentLang === "en" ? "Before we start —" : "सुरुवात करण्यापूर्वी —"}</strong> ${escapeHtml(data.disclaimer)}`);
-    setTimeout(askFamiliarity, 700);
+    setTimeout(askConsent, 700);
   } catch (e) {
     removeTyping();
     addBubble(UI[currentLang].connError, "bot", "error-bubble");
   }
+}
+
+function askConsent() {
+  showTyping();
+  setTimeout(() => {
+    removeTyping();
+    addBubble(`${escapeHtml(UI[currentLang].consentQ)}<br/><br/>${escapeHtml(UI[currentLang].privacyNote)}`, "bot", "info");
+    tray.innerHTML = ""; tray.classList.remove("hidden");
+    const row = document.createElement("div");
+    row.className = "yn-row";
+    const yes = document.createElement("button");
+    yes.className = "yn-btn yes"; yes.textContent = UI[currentLang].agree;
+    yes.onclick = () => { clearTray(); addUserBubble(UI[currentLang].agree); askFamiliarity(); };
+    const no = document.createElement("button");
+    no.className = "yn-btn no"; no.textContent = UI[currentLang].decline;
+    no.onclick = () => {
+      clearTray(); addUserBubble(UI[currentLang].decline);
+      showTyping();
+      setTimeout(() => {
+        removeTyping();
+        addBubble(escapeHtml(UI[currentLang].declineMsg));
+        const restartRow = document.createElement("div");
+        restartRow.style.textAlign = "center";
+        const rb = document.createElement("button");
+        rb.className = "restart-btn"; rb.textContent = UI[currentLang].restart;
+        rb.onclick = restartApp;
+        restartRow.appendChild(rb);
+        chat.appendChild(restartRow);
+        scrollToBottom();
+      }, 600);
+    };
+    row.appendChild(yes); row.appendChild(no);
+    tray.appendChild(row);
+  }, 600);
 }
 
 function askFamiliarity() {
@@ -603,7 +647,7 @@ async function submitToAPI() {
   showTyping();
   addBubble(escapeHtml(UI[currentLang].thinking));
   try {
-    const payload = Object.assign({ name: userName, language: currentLang }, answers);
+    const payload = Object.assign({ name: userName, language: currentLang, consent: true }, answers);
     const res = await fetch(`${API_BASE}/screen`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
